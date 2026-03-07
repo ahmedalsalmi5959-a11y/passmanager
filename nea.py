@@ -2,6 +2,10 @@ import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+import os
+
 session = False
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
 
@@ -100,8 +104,19 @@ def select_pass():
 
 
 def add_pass():
-    print()
+    site = input('Enter the website: ')
+    siteuser = input('Enter the username for that website: ')
+    sitepass = input('Enter the password for the username: ')
+    vault = sqlite3.connect(str(Path(__file__).parent / 'vault.db'))
+    cursorV = vault.cursor()
 
+    
+
+
+
+
+    vault.commit()
+    vault.close()
 
 def delete_pass():
     print()
@@ -114,4 +129,3 @@ def log_out():
 
 
 start_up()
-test test
