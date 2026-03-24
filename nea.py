@@ -1,3 +1,4 @@
+#imports
 import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
@@ -8,14 +9,14 @@ from cryptography.hazmat.primitives import padding
 import os
 import sys
 
-# Constants
+#constants
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
 DB_VAULT = str(DB_DIR / 'vault.db')
-
 session = False
 session_key = None
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
+
 
 def derive_key(password: str, salt: bytes) -> bytes:
     return hash_secret_raw(
@@ -28,6 +29,7 @@ def derive_key(password: str, salt: bytes) -> bytes:
         type=Type.ID
     )
 
+
 def encrypt(plaintext: str, key: bytes) -> str:
     iv = os.urandom(16)
     padder = padding.PKCS7(128).padder()
@@ -36,6 +38,7 @@ def encrypt(plaintext: str, key: bytes) -> str:
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(padded) + encryptor.finalize()
     return (iv + ciphertext).hex()
+
 
 def decrypt(hex_data: str, key: bytes) -> str:
     raw = bytes.fromhex(hex_data)
@@ -46,12 +49,14 @@ def decrypt(hex_data: str, key: bytes) -> str:
     unpadder = padding.PKCS7(128).unpadder()
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
+
 def start_up():
     if Path(DB_CRED).is_file():
         login()
     else:
         print('--- First Time Setup ---')
         sign_up()
+
 
 def sign_up():
     print('Welcome to the offline password manager.')
@@ -89,6 +94,7 @@ def sign_up():
     print('Account created successfully!\n')
     login()
 
+
 def login():
     global session, session_key
     
@@ -124,6 +130,7 @@ def login():
     
     print("Too many failed attempts. Exiting.")
 
+
 def main_menu(vault_id: int):
     while session:
         print('\n=== Main Menu ===')
@@ -144,6 +151,7 @@ def main_menu(vault_id: int):
             log_out()
         else:
             print('Invalid option.')
+
 
 def select_pass(vault_id: int):
     with sqlite3.connect(DB_VAULT) as vault:
@@ -182,6 +190,7 @@ def select_pass(vault_id: int):
         except Exception:
             print(f"  Error decrypting entry for {site}.")
 
+
 def add_pass(vault_id: int):
     site = input('Website: ').strip()
     siteuser = input('Username: ').strip()
@@ -201,6 +210,7 @@ def add_pass(vault_id: int):
             (vault_id, site, enc_user, enc_pass)
         )
     print(f'Password for "{site}" saved.')
+
 
 def delete_pass(vault_id: int):
     with sqlite3.connect(DB_VAULT) as vault:
@@ -223,13 +233,14 @@ def delete_pass(vault_id: int):
         except ValueError:
             print('Invalid input.')
 
+
 def log_out():
     global session, session_key
     session = False
     session_key = None
     print('Logged out.')
 
-# Main Execution Block
+
 if __name__ == "__main__":
     try:
         start_up()
