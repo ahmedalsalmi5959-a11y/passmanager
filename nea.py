@@ -133,7 +133,7 @@ def login():
 
 def main_menu(vault_id: int):
     while session:
-        print('\n=== Main Menu ===')
+        print('\nMain Menu')
         print('1 - View / search passwords')
         print('2 - Add a password')
         print('3 - Delete a password')
