@@ -54,7 +54,7 @@ def start_up():
     if Path(DB_CRED).is_file():
         login()
     else:
-        print('--- First Time Setup ---')
+        print('First Time Setup')
         sign_up()
 
 
@@ -64,7 +64,7 @@ def sign_up():
     masterpass = input('Choose Master Password: ').strip()
 
     if not masteruser or not masterpass:
-        print("Username and Password cannot be empty.")
+        print('Username and Password cannot be empty. ')
         return sign_up()
 
     hashed_pass = hasher.hash(masterpass)
@@ -98,7 +98,7 @@ def sign_up():
 def login():
     global session, session_key
     
-    print('\n--- Login ---')
+    print('\nLogin')
     attempts = 3
     while attempts > 0:
         username = input('Username: ').strip()
@@ -126,9 +126,9 @@ def login():
                 print(f'Invalid password. {attempts} attempts left.')
         else:
             attempts -= 1
-            print(f"User not found. {attempts} attempts left.")
+            print(f'User not found. {attempts} attempts left.')
     
-    print("Too many failed attempts. Exiting.")
+    print('Too many failed attempts. Exiting.')
 
 
 def main_menu(vault_id: int):
@@ -163,7 +163,7 @@ def select_pass(vault_id: int):
             print('No saved passwords yet.')
             return
 
-        print('\n--- Saved Sites ---')
+        print('\nSaved Sites')
         for entry in entries:
             print(f'  [{entry[0]}] {entry[1]}')
 
@@ -179,7 +179,7 @@ def select_pass(vault_id: int):
         print('No matching entries found.')
         return
 
-    print('\n--- Results ---')
+    print('\nResults')
     for site, enc_user, enc_pass in matches:
         try:
             username = decrypt(enc_user, session_key)
@@ -188,7 +188,7 @@ def select_pass(vault_id: int):
             print(f'  Username: {username}')
             print(f'  Password: {password}\n')
         except Exception:
-            print(f"  Error decrypting entry for {site}.")
+            print(f'  Error decrypting entry for {site}.')
 
 
 def add_pass(vault_id: int):
@@ -197,7 +197,7 @@ def add_pass(vault_id: int):
     sitepass = input('Password: ').strip()
 
     if not site or not siteuser or not sitepass:
-        print("All fields are required.")
+        print('All fields are required.')
         return
 
     enc_user = encrypt(siteuser, session_key)
@@ -241,9 +241,9 @@ def log_out():
     print('Logged out.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         start_up()
     except KeyboardInterrupt:
-        print("\n\nExiting safely... Goodbye!")
+        print('\n\nExiting safely... Goodbye!')
         sys.exit(0)
