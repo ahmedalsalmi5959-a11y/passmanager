@@ -1,3 +1,4 @@
+#imports
 import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
@@ -7,8 +8,13 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os
 import sys
+<<<<<<< HEAD
 import tkinter as tinker
 
+=======
+
+#constants
+>>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
 DB_VAULT = str(DB_DIR / 'vault.db')
@@ -241,6 +247,7 @@ def log_out():
 
 #-----------------------------------GUI--------------------------------------------------
 
+<<<<<<< HEAD
 class App(tinker.Tk):
     def __init__ (self):
         super().__init__()
@@ -249,13 +256,19 @@ class App(tinker.Tk):
 
 #-----------------------------------code runner--------------------------------------------------
 '''
+=======
+>>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
 if __name__ == '__main__':
     try:
         start_up()
     except KeyboardInterrupt:
         print('\n\nExiting safely... Goodbye!')
+<<<<<<< HEAD
         sys.exit(0)'''
 
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+=======
+        sys.exit(0)
+>>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
