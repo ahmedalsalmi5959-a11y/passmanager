@@ -1,4 +1,3 @@
-#imports
 import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
@@ -8,13 +7,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os
 import sys
-<<<<<<< HEAD
 import tkinter as tinker
 
-=======
-
-#constants
->>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
 DB_VAULT = str(DB_DIR / 'vault.db')
@@ -65,7 +59,7 @@ def start_up():
 
 def sign_up():
     print('Welcome to the offline password manager.')
-    masteruser = input('Choose Master Username: ').strip()
+    masteruser = input('Choose Master username: ').strip()
     masterpass = input('Choose Master Password: ').strip()
 
     if not masteruser or not masterpass:
@@ -138,7 +132,7 @@ def login():
 
 def main_menu(vault_id: int):
     while session:
-        print('\nMain Menu')
+        print('Main Menu')
         print('1 - View / search passwords')
         print('2 - Add a password')
         print('3 - Delete a password')
@@ -247,28 +241,117 @@ def log_out():
 
 #-----------------------------------GUI--------------------------------------------------
 
-<<<<<<< HEAD
-class App(tinker.Tk):
+class App_sign_up(tinker.Tk):
     def __init__ (self):
         super().__init__()
         self.title('password manager')
         self.geometry('400x500')
+        tinker.Label(self, text='Welcome to the offline password manager.').pack()
+        tinker.Label(self, text='you can only sign up once').pack()
+        tinker.Label(self, text='Choose Master Username: ').pack()
+        self.master_username_entry = tinker.Entry(self)
+        self.master_username_entry.pack()
+        tinker.Label(self, text='Choose Master Password: ').pack()
+        self.master_password_entry = tinker.Entry(self, show='*')
+        self.master_password_entry.pack()
+        tinker.Button(self, text="sign up", command=self.sign_up).pack()
+        self.msg = tinker.Label(self, text='')
+        self.msg.pack()
 
+    def sign_up(self):
+        masteruser = self.master_username_entry.get().strip()
+        masterpass = self.master_password_entry.get().strip()
+
+        if not masteruser or not masterpass:
+            self.msg.config(text='Username and Password cannot be empty.')
+            return
+
+        hashed_pass = hasher.hash(masterpass)
+        salt = os.urandom(16)
+
+        with sqlite3.connect(DB_CRED) as vault_cred:
+            cursorVC = vault_cred.cursor()
+            cursorVC.execute('''CREATE TABLE IF NOT EXISTS Metadata (
+                                vault_id INTEGER PRIMARY KEY,
+                                master_username TEXT,
+                                password_hash TEXT,
+                                salt TEXT)''')
+            cursorVC.execute(
+                'INSERT INTO Metadata (master_username, password_hash, salt) VALUES (?, ?, ?)',
+                (masteruser, hashed_pass, salt.hex())
+            )
+
+        with sqlite3.connect(DB_VAULT) as vault:
+            cursorV = vault.cursor()
+            cursorV.execute('''CREATE TABLE IF NOT EXISTS Credentials (
+                               id INTEGER PRIMARY KEY,
+                                    vault_id INTEGER,
+                                website_name TEXT,
+                                username_encrypted TEXT,
+                                password_encrypted TEXT)''')
+    
+        self.msg.config(text='Account created successfully!')
+        login()
+
+class app_login(tinker.Tk):
+    def __init__ (self):
+        super().__init__()
+        self.title('password manager')
+        self.geometry('400x500')
+        tinker.Label(self, text='Welcome to the offline password manager.').pack()
+        tinker.Label(self, text='please log in').pack()
+        tinker.Label(self, text='Enter your Username: ').pack()
+        self.username_entry = tinker.Entry(self)
+        self.username_entry.pack()
+        tinker.Label(self, text='Enter your Password: ').pack()
+        self.password_entry = tinker.Entry(self, show='*')
+        self.password_entry.pack()
+        tinker.Button(self, text="log in", command=self.login).pack()
+        self.msg = tinker.Label(self, text='')
+        self.msg.pack()
+        self.attempts = 3
+
+    def login(self):
+        global session, session_key
+    
+        username = self.username_entry.get().strip()
+        passwrd = self.password_entry.get().strip()
+
+        with sqlite3.connect(DB_CRED) as vault_cred:
+            cursorVC = vault_cred.cursor()
+            cursorVC.execute(
+                'SELECT password_hash, salt, vault_id FROM Metadata WHERE master_username = ?',
+                (username,)
+            )
+            result = cursorVC.fetchone()
+
+        if result:
+            stored_hash, salt_hex, vault_id = result
+            try:
+                hasher.verify(stored_hash, passwrd)
+                session = True
+                session_key = derive_key(passwrd, bytes.fromhex(salt_hex))
+                self.msg.config(text='Login successful.')
+                main_menu(vault_id)
+                return 
+            except VerifyMismatchError:
+                self.attempts -= 1
+                self.msg.config(text=f'Invalid password. {self.attempts} attempts left.')
+        else:
+            self.attempts -= 1
+            self.msg.config(text=f'User not found. {self.attempts} attempts left.')
+    
+        self.msg.config(text='Too many failed attempts. Exiting.')
+        
 #-----------------------------------code runner--------------------------------------------------
 '''
-=======
->>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
 if __name__ == '__main__':
     try:
         start_up()
     except KeyboardInterrupt:
         print('\n\nExiting safely... Goodbye!')
-<<<<<<< HEAD
         sys.exit(0)'''
 
 if __name__ == "__main__":
-    app = App()
+    app = App_sign_up()
     app.mainloop()
-=======
-        sys.exit(0)
->>>>>>> 25a7a8f4b4394b214298321f53ba9fb15cbdd9e5
