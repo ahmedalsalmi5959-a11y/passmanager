@@ -361,6 +361,8 @@ class App_main_menu(tinker.Tk):
         tinker.Button(self, text='log out', command=self.log_out).pack()
         self.msg = tinker.Label(self, text='')
         self.msg.pack()
+        self.timeout = 5 * 60 * 1000
+        self.timer = self.after(self.timeout, self.auto_logout)
 
     def add_password(self):
         self.destroy()
@@ -373,7 +375,16 @@ class App_main_menu(tinker.Tk):
         app.mainloop()
 
     def log_out(self):
-        print('logout')
+        self.destroy()
+        app_login().mainloop()
+    
+    def auto_logout(self):
+        self.destroy()
+        app_login().mainloop()
+
+    def reset_timer(self):
+        self.after_cancel(self.timer)
+        self.timer = self.after(self.timeout, self.auto_logout)
 
 class App_add_password(tinker.Tk):
     def __init__ (self, vault_id):        
