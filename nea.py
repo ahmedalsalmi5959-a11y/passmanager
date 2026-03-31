@@ -6,7 +6,6 @@ from argon2.low_level import hash_secret_raw, Type
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os
-import sys
 import tkinter as tinker
 
 DB_DIR = Path(__file__).parent
@@ -49,196 +48,6 @@ def decrypt(hex_data, key):
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
 
-def start_up():
-    if Path(DB_CRED).is_file():
-        login()
-    else:
-        print('First Time Setup')
-        sign_up()
-
-
-def sign_up():
-    print('Welcome to the offline password manager.')
-    masteruser = input('Choose Master username: ').strip()
-    masterpass = input('Choose Master Password: ').strip()
-
-    if not masteruser or not masterpass:
-        print('Username and Password cannot be empty. ')
-        return sign_up()
-
-    hashed_pass = hasher.hash(masterpass)
-    salt = os.urandom(16)
-
-    with sqlite3.connect(DB_CRED) as vault_cred:
-        cursorVC = vault_cred.cursor()
-        cursorVC.execute('''CREATE TABLE IF NOT EXISTS Metadata (
-                            vault_id INTEGER PRIMARY KEY,
-                            master_username TEXT,
-                            password_hash TEXT,
-                            salt TEXT)''')
-        cursorVC.execute(
-            'INSERT INTO Metadata (master_username, password_hash, salt) VALUES (?, ?, ?)',
-            (masteruser, hashed_pass, salt.hex())
-        )
-
-    with sqlite3.connect(DB_VAULT) as vault:
-        cursorV = vault.cursor()
-        cursorV.execute('''CREATE TABLE IF NOT EXISTS Credentials (
-                            id INTEGER PRIMARY KEY,
-                            vault_id INTEGER,
-                            website_name TEXT,
-                            username_encrypted TEXT,
-                            password_encrypted TEXT)''')
-    
-    print('Account created successfully!\n')
-    login()
-
-
-def login():
-    global session, session_key
-    
-    print('\nLogin')
-    attempts = 3
-    while attempts > 0:
-        username = input('Username: ').strip()
-        passwrd = input('Password: ').strip()
-
-        with sqlite3.connect(DB_CRED) as vault_cred:
-            cursorVC = vault_cred.cursor()
-            cursorVC.execute(
-                'SELECT password_hash, salt, vault_id FROM Metadata WHERE master_username = ?',
-                (username,)
-            )
-            result = cursorVC.fetchone()
-
-        if result:
-            stored_hash, salt_hex, vault_id = result
-            try:
-                hasher.verify(stored_hash, passwrd)
-                session = True
-                session_key = derive_key(passwrd, bytes.fromhex(salt_hex))
-                print('Login successful.')
-                main_menu(vault_id)
-                return 
-            except VerifyMismatchError:
-                attempts -= 1
-                print(f"Invalid password. {attempts} attempts left.")
-        else:
-            attempts -= 1
-            print(f"User not found. {attempts} attempts left.")
-    
-    print('Too many failed attempts. Exiting.')
-
-
-def main_menu(vault_id):
-    while session:
-        print('Main Menu')
-        print('1 - View / search passwords')
-        print('2 - Add a password')
-        print('3 - Delete a password')
-        print('4 - Log out')
-
-        choice = input('> ').strip()
-
-        if choice == '1':
-            select_pass(vault_id)
-        elif choice == '2':
-            add_pass(vault_id)
-        elif choice == '3':
-            delete_pass(vault_id)
-        elif choice == '4':
-            log_out()
-        else:
-            print('Invalid option.')
-
-
-def select_pass(vault_id):
-    with sqlite3.connect(DB_VAULT) as vault:
-        cursorV = vault.cursor()
-        cursorV.execute('SELECT id, website_name FROM Credentials WHERE vault_id = ?', (vault_id,))
-        entries = cursorV.fetchall()
-
-        if not entries:
-            print('No saved passwords yet.')
-            return
-
-        print('\nSaved Sites')
-        for entry in entries:
-            print(f"  [{entry[0]}] {entry[1]}")
-
-        search = input('\nSearch by website name (Enter to see all): ').strip().lower()
-        
-        cursorV.execute(
-            'SELECT website_name, username_encrypted, password_encrypted FROM Credentials WHERE vault_id = ? AND LOWER(website_name) LIKE ?',
-            (vault_id, f"%{search}%")
-        )
-        matches = cursorV.fetchall()
-
-    if not matches:
-        print('No matching entries found.')
-        return
-
-    print('\nResults')
-    for site, enc_user, enc_pass in matches:
-        try:
-            username = decrypt(enc_user, session_key)
-            password = decrypt(enc_pass, session_key)
-            print(f"  Site:     {site}")
-            print(f"  Username: {username}")
-            print(f"  Password: {password}\n")
-        except Exception:
-            print(f"  Error decrypting entry for {site}.")
-
-
-def add_pass(vault_id):
-    site = input('Website: ').strip()
-    siteuser = input('Username: ').strip()
-    sitepass = input('Password: ').strip()
-
-    if not site or not siteuser or not sitepass:
-        print('All fields are required.')
-        return
-
-    enc_user = encrypt(siteuser, session_key)
-    enc_pass = encrypt(sitepass, session_key)
-
-    with sqlite3.connect(DB_VAULT) as vault:
-        cursorV = vault.cursor()
-        cursorV.execute(
-            'INSERT INTO Credentials (vault_id, website_name, username_encrypted, password_encrypted) VALUES (?, ?, ?, ?)',
-            (vault_id, site, enc_user, enc_pass)
-        )
-    print(f"Password for '{site}' saved.")
-
-
-def delete_pass(vault_id):
-    with sqlite3.connect(DB_VAULT) as vault:
-        cursorV = vault.cursor()
-        cursorV.execute('SELECT id, website_name FROM Credentials WHERE vault_id = ?', (vault_id,))
-        entries = cursorV.fetchall()
-
-        if not entries:
-            print('Nothing to delete.')
-            return
-
-        for entry in entries:
-            print(f"  [{entry[0]}] {entry[1]}")
-
-        try:
-            choice = int(input('\nEnter ID to delete (0 to cancel): ').strip())
-            if choice == 0: return
-            cursorV.execute('DELETE FROM Credentials WHERE id = ? AND vault_id = ?', (choice, vault_id))
-            print('Entry deleted.' if cursorV.rowcount else 'ID not found.')
-        except ValueError:
-            print('Invalid input.')
-
-
-def log_out():
-    global session, session_key
-    session = False
-    session_key = None
-    print('Logged out.')
-
 #-----------------------------------GUI--------------------------------------------------
 
 class App_sign_up(tinker.Tk):
@@ -247,11 +56,11 @@ class App_sign_up(tinker.Tk):
         self.title('password manager')
         self.geometry('400x500')
         tinker.Label(self, text='Welcome to the offline password manager.').pack()
-        tinker.Label(self, text='you can only sign up once').pack()
-        tinker.Label(self, text='Choose Master Username: ').pack()
+        tinker.Label(self, text='Create your account - this can only be done once').pack()
+        tinker.Label(self, text='Create your username: ').pack()
         self.master_username_entry = tinker.Entry(self)
         self.master_username_entry.pack()
-        tinker.Label(self, text='Choose Master Password: ').pack()
+        tinker.Label(self, text='Create your password: ').pack()
         self.master_password_entry = tinker.Entry(self, show='*')
         self.master_password_entry.pack()
         tinker.Button(self, text='sign up', command=self.sign_up).pack()
@@ -291,7 +100,7 @@ class App_sign_up(tinker.Tk):
                                 password_encrypted TEXT)''')
     
         self.msg.config(text='Account created successfully!')
-        self.destroy
+        self.destroy()
         app = app_login()
         app.mainloop()
 
@@ -301,7 +110,7 @@ class app_login(tinker.Tk):
         self.title('password manager')
         self.geometry('400x500')
         tinker.Label(self, text='Welcome to the offline password manager.').pack()
-        tinker.Label(self, text='please log in').pack()
+        tinker.Label(self, text='Enter your username and password to continue').pack()
         tinker.Label(self, text='Enter your Username: ').pack()
         self.username_entry = tinker.Entry(self)
         self.username_entry.pack()
@@ -341,12 +150,17 @@ class app_login(tinker.Tk):
             except VerifyMismatchError:
                 self.attempts -= 1
                 self.msg.config(text=f"Invalid password. {self.attempts} attempts left.")
+                if self.attempts <= 0:
+                    self.msg.config(text='Too many failed attempts.')
+                    self.destroy()
         else:
             self.attempts -= 1
             self.msg.config(text=f"User not found. {self.attempts} attempts left.")
+            if self.attempts <= 0:
+                self.msg.config(text='Too many failed attempts.')
+                self.destroy()
     
-        self.msg.config(text='Too many failed attempts. Exiting.')
-        self.destroy()
+        
         
 class App_main_menu(tinker.Tk):
     def __init__ (self, vault_id):
@@ -363,6 +177,8 @@ class App_main_menu(tinker.Tk):
         self.msg.pack()
         self.timeout = 5 * 60 * 1000
         self.timer = self.after(self.timeout, self.auto_logout)
+        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
+        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
 
     def add_password(self):
         self.destroy()
@@ -379,6 +195,9 @@ class App_main_menu(tinker.Tk):
         app_login().mainloop()
     
     def auto_logout(self):
+        global session, session_key
+        session = False
+        session_key = None
         self.destroy()
         app_login().mainloop()
 
@@ -406,6 +225,10 @@ class App_add_password(tinker.Tk):
         tinker.Button(self, text='back', command=self.main_menu).pack()
         self.msg = tinker.Label(self, text='')
         self.msg.pack()
+        self.timeout = 5 * 60 * 1000
+        self.timer = self.after(self.timeout, self.auto_logout)
+        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
+        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
 
     def add_pass(self):
         site = self.website_entry.get().strip()
@@ -429,6 +252,18 @@ class App_add_password(tinker.Tk):
         self.website_entry.delete(0, tinker.END)
         self.username_entry.delete(0, tinker.END)
         self.password_entry.delete(0, tinker.END)
+
+    def reset_timer(self):
+        self.after_cancel(self.timer)
+        self.timer = self.after(self.timeout, self.auto_logout)
+
+    def auto_logout(self):
+        global session, session_key
+        session = False
+        session_key = None
+        self.destroy()
+        app_login().mainloop()
+
 
     def main_menu(self):
         self.destroy()
@@ -458,10 +293,19 @@ class App_select_password(tinker.Tk):
         self.password_detail = tinker.Entry(frame2, width=30, state='readonly', textvariable=self.password_var)
         self.password_detail.pack(side='left')
         self.load_passwords()
+        tinker.Label(self, text='Search:').pack()
+        self.search_entry = tinker.Entry(self)
+        self.search_entry.pack()
+        tinker.Button(self, text='search', command=self.search).pack()
         tinker.Button(self, text='delete', command=self.delete_pass).pack()
         tinker.Button(self, text='back', command=self.main_menu).pack()
         self.msg = tinker.Label(self, text='')
         self.msg.pack()
+        self.timeout = 5 * 60 * 1000
+        self.timer = self.after(self.timeout, self.auto_logout)
+        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
+        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
+
 
     def load_passwords(self):
         self.ids = []
@@ -494,6 +338,21 @@ class App_select_password(tinker.Tk):
             self.username_var.set(username)
             self.password_var.set(password)
 
+    def search(self):
+        query = self.search_entry.get().strip().lower()
+        self.listbox.delete(0, tinker.END)
+        self.ids = []
+        with sqlite3.connect(DB_VAULT) as vault:
+            cursorV = vault.cursor()
+            cursorV.execute(
+                'SELECT id, website_name FROM Credentials WHERE vault_id = ? AND LOWER(website_name) LIKE ?',
+                (self.vault_id, f'%{query}%')
+            )
+            entries = cursorV.fetchall()
+        for entry in entries:
+            self.ids.append(entry[0])
+            self.listbox.insert(tinker.END, entry[1])
+
     def delete_pass(self):
         selected = self.listbox.curselection()
         if not selected:
@@ -510,20 +369,23 @@ class App_select_password(tinker.Tk):
         self.password_var.set('')
         self.msg.config(text=f'Deleted {site}.')
 
+    def reset_timer(self):
+        self.after_cancel(self.timer)
+        self.timer = self.after(self.timeout, self.auto_logout)
+
+    def auto_logout(self):
+        global session, session_key
+        session = False
+        session_key = None
+        self.destroy()
+        app_login().mainloop()
+
     def main_menu(self):
         self.destroy()
         app = App_main_menu(self.vault_id)
         app.mainloop()
 
 #-----------------------------------code runner--------------------------------------------------
-'''
-if __name__ == '__main__':
-    try:
-        start_up()
-    except KeyboardInterrupt:
-        print('\n\nExiting safely... Goodbye!')
-        sys.exit(0)'''
-
 if __name__ == '__main__':
     if Path(DB_CRED).is_file():
         app = app_login()
