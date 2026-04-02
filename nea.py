@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os
 import tkinter as tinker
+from tkinter import ttk
 
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
@@ -292,13 +293,20 @@ class App_select_password(tinker.Tk):
         tinker.Label(frame2, text='Password:').pack(side='left')
         self.password_detail = tinker.Entry(frame2, width=30, state='readonly', textvariable=self.password_var)
         self.password_detail.pack(side='left')
-        self.load_passwords()
+        
         tinker.Label(self, text='Search:').pack()
         self.search_entry = tinker.Entry(self)
         self.search_entry.pack()
+        self.sort_var = tinker.StringVar()
+        self.sort_dropdown = ttk.Combobox(self, textvariable=self.sort_var, state='readonly')
+        self.sort_dropdown['values'] = ('A-Z', 'Z-A', 'Oldest first', 'Newest first')
+        self.sort_dropdown.current(0)
+        self.sort_dropdown.pack()
+        self.sort_dropdown.bind('<<ComboboxSelected>>', lambda e: self.load_passwords())
         tinker.Button(self, text='search', command=self.search).pack()
         tinker.Button(self, text='delete', command=self.delete_pass).pack()
         tinker.Button(self, text='back', command=self.main_menu).pack()
+        self.load_passwords()
         self.msg = tinker.Label(self, text='')
         self.msg.pack()
         self.timeout = 5 * 60 * 1000
@@ -309,13 +317,23 @@ class App_select_password(tinker.Tk):
 
     def load_passwords(self):
         self.ids = []
+        self.listbox.delete(0, tinker.END)
         with sqlite3.connect(DB_VAULT) as vault:
             cursorV = vault.cursor()
             cursorV.execute('SELECT id, website_name FROM Credentials WHERE vault_id = ?', (self.vault_id,))
             entries = cursorV.fetchall()
-        for entry in entries:
-            self.ids.append(entry[0])
-            self.listbox.insert(tinker.END, entry[1])
+            sort = self.sort_var.get()
+            if sort == 'A-Z':
+                entries = sorted(entries, key=lambda x: x[1].lower())
+            elif sort == 'Z-A':
+                entries = sorted(entries, key=lambda x: x[1].lower(), reverse=True)
+            elif sort == 'Oldest first':
+                entries = sorted(entries, key=lambda x: x[0])
+            elif sort == 'Newest first':
+                entries = sorted(entries, key=lambda x: x[0], reverse=True)
+            for entry in entries:
+                self.ids.append(entry[0])
+                self.listbox.insert(tinker.END, entry[1])
 
     def show_details(self, event):
         selected = self.listbox.curselection()
