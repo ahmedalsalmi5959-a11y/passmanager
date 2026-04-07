@@ -48,6 +48,25 @@ def decrypt(hex_data, key):
     unpadder = padding.PKCS7(128).unpadder()
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
+def sorting(ls):
+    if len(ls) <= 1:
+        return ls
+    mid = len(ls) // 2
+    left = sorting(ls[:mid])
+    right = sorting(ls[mid:])
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i][1].lower() <= right[j][1].lower():
+            result.append(left[i])
+            i += 1
+        else:
+            result.append(right[j])
+            j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+    
 
 #-----------------------------------GUI--------------------------------------------------
 
@@ -324,9 +343,9 @@ class App_select_password(tinker.Tk):
             entries = cursorV.fetchall()
             sort = self.sort_var.get()
             if sort == 'A-Z':
-                entries = sorted(entries, key=lambda x: x[1].lower())
+                entries = sorting(entries)
             elif sort == 'Z-A':
-                entries = sorted(entries, key=lambda x: x[1].lower(), reverse=True)
+                entries = sorting(entries)[::-1]
             elif sort == 'Oldest first':
                 entries = sorted(entries, key=lambda x: x[0])
             elif sort == 'Newest first':
