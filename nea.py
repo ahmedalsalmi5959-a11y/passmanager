@@ -1,3 +1,4 @@
+#imports
 import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
@@ -9,6 +10,7 @@ import os
 import tkinter as tinker
 from tkinter import ttk
 
+#varible setup
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
 DB_VAULT = str(DB_DIR / 'vault.db')
@@ -16,7 +18,7 @@ session = False
 session_key = None
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
 
-
+#fuctions
 def derive_key(password, salt):
     return hash_secret_raw(
         secret=password.encode(),
