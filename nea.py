@@ -1,4 +1,4 @@
-#imports
+#--------------------imports------------------------------------------------------------
 import sqlite3
 from pathlib import Path
 from argon2 import PasswordHasher
@@ -10,7 +10,7 @@ import os
 import tkinter as tinker
 from tkinter import ttk
 
-#varible setup
+#--------------------varible setup-----------------------------------------------------
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
 DB_VAULT = str(DB_DIR / 'vault.db')
@@ -18,8 +18,10 @@ session = False
 session_key = None
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
 
-#fuctions
+#--------------------fuctions-------------------------------------------------------- 
+
 def derive_key(password, salt):
+    '''this function sets up the hashing algorithm using the proper parameters'''
     return hash_secret_raw(
         secret=password.encode(),
         salt=salt,
@@ -32,6 +34,7 @@ def derive_key(password, salt):
 
 
 def encrypt(plaintext, key):
+    ''' '''
     iv = os.urandom(16)
     padder = padding.PKCS7(128).padder()
     padded = padder.update(plaintext.encode()) + padder.finalize()
@@ -42,6 +45,7 @@ def encrypt(plaintext, key):
 
 
 def decrypt(hex_data, key):
+    ''' '''
     raw = bytes.fromhex(hex_data)
     iv, ciphertext = raw[:16], raw[16:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -51,6 +55,7 @@ def decrypt(hex_data, key):
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
 def sorting(ls):
+    ''' '''
     if len(ls) <= 1:
         return ls
     mid = len(ls) // 2
@@ -74,6 +79,7 @@ def sorting(ls):
 
 class App_sign_up(tinker.Tk):
     def __init__ (self):
+        ''' '''
         super().__init__()
         self.title('password manager')
         self.geometry('400x500')
@@ -90,6 +96,7 @@ class App_sign_up(tinker.Tk):
         self.msg.pack()
 
     def sign_up(self):
+        ''' '''
         masteruser = self.master_username_entry.get().strip()
         masterpass = self.master_password_entry.get().strip()
 
@@ -128,6 +135,7 @@ class App_sign_up(tinker.Tk):
 
 class app_login(tinker.Tk):
     def __init__ (self):
+        ''' '''
         super().__init__()
         self.title('password manager')
         self.geometry('400x500')
@@ -145,6 +153,7 @@ class app_login(tinker.Tk):
         self.attempts = 3
 
     def login(self):
+        ''' '''
         global session, session_key
     
         username = self.username_entry.get().strip()
@@ -186,6 +195,7 @@ class app_login(tinker.Tk):
         
 class App_main_menu(tinker.Tk):
     def __init__ (self, vault_id):
+        ''' '''
         self.vault_id = vault_id
         super().__init__()
         self.title('password manager')
@@ -203,11 +213,13 @@ class App_main_menu(tinker.Tk):
         self.bind_all('<Any-Button>', lambda e: self.reset_timer())
 
     def add_password(self):
+        '''takes you to the adding password page'''
         self.destroy()
         app = App_add_password(self.vault_id)
         app.mainloop()
 
     def select_password(self):
+        '''takes you to select a password page'''
         self.destroy()
         app = App_select_password(self.vault_id)
         app.mainloop()
@@ -217,6 +229,7 @@ class App_main_menu(tinker.Tk):
         app_login().mainloop()
     
     def auto_logout(self):
+        '''logs out the user after the idle timer reaches 5 min'''
         global session, session_key
         session = False
         session_key = None
@@ -224,11 +237,13 @@ class App_main_menu(tinker.Tk):
         app_login().mainloop()
 
     def reset_timer(self):
+        '''resets the idle timer after an input has been made'''
         self.after_cancel(self.timer)
         self.timer = self.after(self.timeout, self.auto_logout)
 
 class App_add_password(tinker.Tk):
-    def __init__ (self, vault_id):        
+    def __init__ (self, vault_id):
+        ''' '''        
         self.vault_id = vault_id
         super().__init__()
         self.title('password manager')
