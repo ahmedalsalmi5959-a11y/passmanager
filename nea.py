@@ -7,7 +7,7 @@ from argon2.low_level import hash_secret_raw, Type
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os
-import tkinter as tinker
+import tkinter as tkinter
 from tkinter import ttk
 
 #--------------------varible setup-----------------------------------------------------
@@ -34,7 +34,7 @@ def derive_key(password, salt):
 
 
 def encrypt(plaintext, key):
-    ''' '''
+    '''fuction to encrypt data using aes-256 '''
     iv = os.urandom(16)
     padder = padding.PKCS7(128).padder()
     padded = padder.update(plaintext.encode()) + padder.finalize()
@@ -45,7 +45,7 @@ def encrypt(plaintext, key):
 
 
 def decrypt(hex_data, key):
-    ''' '''
+    '''function to decrypt data using aes-256 '''
     raw = bytes.fromhex(hex_data)
     iv, ciphertext = raw[:16], raw[16:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -55,7 +55,7 @@ def decrypt(hex_data, key):
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
 def sorting(ls):
-    ''' '''
+    '''fuction that uses merge sort to sort a list'''
     if len(ls) <= 1:
         return ls
     mid = len(ls) // 2
@@ -77,26 +77,51 @@ def sorting(ls):
 
 #-----------------------------------GUI--------------------------------------------------
 
-class App_sign_up(tinker.Tk):
-    def __init__ (self):
-        ''' '''
+class AppPage(tkinter.Tk):
+    '''base class for all pages that require a session timeout'''
+    def __init__(self):
         super().__init__()
         self.title('password manager')
         self.geometry('400x500')
-        tinker.Label(self, text='Welcome to the offline password manager.').pack()
-        tinker.Label(self, text='Create your account - this can only be done once').pack()
-        tinker.Label(self, text='Create your username: ').pack()
-        self.master_username_entry = tinker.Entry(self)
+        self.timeout = 5 * 60 * 1000
+        self.timer = self.after(self.timeout, self.auto_logout)
+        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
+        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
+
+    def reset_timer(self):
+        '''resets the idle timer after an input has been made'''
+        self.after_cancel(self.timer)
+        self.timer = self.after(self.timeout, self.auto_logout)
+
+    def auto_logout(self):
+        '''logs out the user after the idle timer reaches 5 min'''
+        global session, session_key
+        session = False
+        session_key = None
+        self.destroy()
+        app_login().mainloop()
+
+
+class App_sign_up(tkinter.Tk):
+    def __init__ (self):
+        '''sets up the windows for the sign up page '''
+        super().__init__()
+        self.title('password manager')
+        self.geometry('400x500')
+        tkinter.Label(self, text='Welcome to the offline password manager.').pack()
+        tkinter.Label(self, text='Create your account - this can only be done once').pack()
+        tkinter.Label(self, text='Create your username: ').pack()
+        self.master_username_entry = tkinter.Entry(self)
         self.master_username_entry.pack()
-        tinker.Label(self, text='Create your password: ').pack()
-        self.master_password_entry = tinker.Entry(self, show='*')
+        tkinter.Label(self, text='Create your password: ').pack()
+        self.master_password_entry = tkinter.Entry(self, show='*')
         self.master_password_entry.pack()
-        tinker.Button(self, text='sign up', command=self.sign_up).pack()
-        self.msg = tinker.Label(self, text='')
+        tkinter.Button(self, text='sign up', command=self.sign_up).pack()
+        self.msg = tkinter.Label(self, text='')
         self.msg.pack()
 
     def sign_up(self):
-        ''' '''
+        '''function for signing up a new user '''
         masteruser = self.master_username_entry.get().strip()
         masterpass = self.master_password_entry.get().strip()
 
@@ -133,27 +158,27 @@ class App_sign_up(tinker.Tk):
         app = app_login()
         app.mainloop()
 
-class app_login(tinker.Tk):
+class app_login(tkinter.Tk):
     def __init__ (self):
-        ''' '''
+        '''sets up the window for the login page '''
         super().__init__()
         self.title('password manager')
         self.geometry('400x500')
-        tinker.Label(self, text='Welcome to the offline password manager.').pack()
-        tinker.Label(self, text='Enter your username and password to continue').pack()
-        tinker.Label(self, text='Enter your Username: ').pack()
-        self.username_entry = tinker.Entry(self)
+        tkinter.Label(self, text='Welcome to the offline password manager.').pack()
+        tkinter.Label(self, text='Enter your username and password to continue').pack()
+        tkinter.Label(self, text='Enter your Username: ').pack()
+        self.username_entry = tkinter.Entry(self)
         self.username_entry.pack()
-        tinker.Label(self, text='Enter your Password: ').pack()
-        self.password_entry = tinker.Entry(self, show='*')
+        tkinter.Label(self, text='Enter your Password: ').pack()
+        self.password_entry = tkinter.Entry(self, show='*')
         self.password_entry.pack()
-        tinker.Button(self, text='log in', command=self.login).pack()
-        self.msg = tinker.Label(self, text='')
+        tkinter.Button(self, text='log in', command=self.login).pack()
+        self.msg = tkinter.Label(self, text='')
         self.msg.pack()
         self.attempts = 3
 
     def login(self):
-        ''' '''
+        '''fuction to allow user to log into the password manager '''
         global session, session_key
     
         username = self.username_entry.get().strip()
@@ -193,27 +218,21 @@ class app_login(tinker.Tk):
     
         
         
-class App_main_menu(tinker.Tk):
+class App_main_menu(AppPage):
     def __init__ (self, vault_id):
-        ''' '''
+        '''sets up the window for the main menu page '''
         self.vault_id = vault_id
         super().__init__()
-        self.title('password manager')
-        self.geometry('400x500')
-        tinker.Label(self, text='Welcome to the offline password manager.').pack()
-        tinker.Label(self, text='MAIN MENU').pack()
-        tinker.Button(self, text='add password', command=self.add_password).pack()
-        tinker.Button(self, text='select password', command=self.select_password).pack()
-        tinker.Button(self, text='log out', command=self.log_out).pack()
-        self.msg = tinker.Label(self, text='')
+        tkinter.Label(self, text='Welcome to the offline password manager.').pack()
+        tkinter.Label(self, text='MAIN MENU').pack()
+        tkinter.Button(self, text='add password', command=self.add_password).pack()
+        tkinter.Button(self, text='select password', command=self.select_password).pack()
+        tkinter.Button(self, text='log out', command=self.log_out).pack()
+        self.msg = tkinter.Label(self, text='')
         self.msg.pack()
-        self.timeout = 5 * 60 * 1000
-        self.timer = self.after(self.timeout, self.auto_logout)
-        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
-        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
 
     def add_password(self):
-        '''takes you to the adding password page'''
+        '''takes you to the adding a password page'''
         self.destroy()
         app = App_add_password(self.vault_id)
         app.mainloop()
@@ -225,49 +244,33 @@ class App_main_menu(tinker.Tk):
         app.mainloop()
 
     def log_out(self):
-        self.destroy()
-        app_login().mainloop()
-    
-    def auto_logout(self):
-        '''logs out the user after the idle timer reaches 5 min'''
-        global session, session_key
-        session = False
-        session_key = None
+        '''removes the window'''
         self.destroy()
         app_login().mainloop()
 
-    def reset_timer(self):
-        '''resets the idle timer after an input has been made'''
-        self.after_cancel(self.timer)
-        self.timer = self.after(self.timeout, self.auto_logout)
 
-class App_add_password(tinker.Tk):
+class App_add_password(AppPage):
     def __init__ (self, vault_id):
-        ''' '''        
+        '''sets up the window for the adding a password page '''        
         self.vault_id = vault_id
         super().__init__()
-        self.title('password manager')
-        self.geometry('400x500')
-        tinker.Label(self, text='Please add your password details').pack()
-        tinker.Label(self, text='website: ').pack()
-        self.website_entry = tinker.Entry(self)
+        tkinter.Label(self, text='Please add your password details').pack()
+        tkinter.Label(self, text='website: ').pack()
+        self.website_entry = tkinter.Entry(self)
         self.website_entry.pack()
-        tinker.Label(self, text='username: ').pack()
-        self.username_entry = tinker.Entry(self)
+        tkinter.Label(self, text='username: ').pack()
+        self.username_entry = tkinter.Entry(self)
         self.username_entry.pack()
-        tinker.Label(self, text='password: ').pack()
-        self.password_entry = tinker.Entry(self, show='*')
+        tkinter.Label(self, text='password: ').pack()
+        self.password_entry = tkinter.Entry(self, show='*')
         self.password_entry.pack()
-        tinker.Button(self, text='add', command=self.add_pass).pack()
-        tinker.Button(self, text='back', command=self.main_menu).pack()
-        self.msg = tinker.Label(self, text='')
+        tkinter.Button(self, text='add', command=self.add_pass).pack()
+        tkinter.Button(self, text='back', command=self.main_menu).pack()
+        self.msg = tkinter.Label(self, text='')
         self.msg.pack()
-        self.timeout = 5 * 60 * 1000
-        self.timer = self.after(self.timeout, self.auto_logout)
-        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
-        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
 
     def add_pass(self):
+        '''fuction to allow the user to add and store a password '''
         site = self.website_entry.get().strip()
         siteuser = self.username_entry.get().strip()
         sitepass = self.password_entry.get().strip()
@@ -286,74 +289,58 @@ class App_add_password(tinker.Tk):
                 (self.vault_id, site, enc_user, enc_pass)
             )
         self.msg.config(text=f"Password for '{site}' saved.")
-        self.website_entry.delete(0, tinker.END)
-        self.username_entry.delete(0, tinker.END)
-        self.password_entry.delete(0, tinker.END)
-
-    def reset_timer(self):
-        self.after_cancel(self.timer)
-        self.timer = self.after(self.timeout, self.auto_logout)
-
-    def auto_logout(self):
-        global session, session_key
-        session = False
-        session_key = None
-        self.destroy()
-        app_login().mainloop()
-
+        self.website_entry.delete(0, tkinter.END)
+        self.username_entry.delete(0, tkinter.END)
+        self.password_entry.delete(0, tkinter.END)
 
     def main_menu(self):
+        '''takes you to the main menu page'''
         self.destroy()
         app = App_main_menu(self.vault_id)
         app.mainloop()
 
-class App_select_password(tinker.Tk):
+class App_select_password(AppPage):
     def __init__ (self, vault_id): 
+        ''' sets up the window for the select a password page'''
         self.vault_id = vault_id
         super().__init__()
-        self.title('password manager')
-        self.geometry('400x500')
-        tinker.Label(self, text='these are your saved passwords').pack()
-        self.listbox = tinker.Listbox(self, width=40, height=10)
+        tkinter.Label(self, text='these are your saved passwords').pack()
+        self.listbox = tkinter.Listbox(self, width=40, height=10)
         self.listbox.pack()
         self.listbox.bind('<<ListboxSelect>>', self.show_details)
-        self.username_var = tinker.StringVar()
-        self.password_var = tinker.StringVar()
-        frame1 = tinker.Frame(self)
+        self.username_var = tkinter.StringVar()
+        self.password_var = tkinter.StringVar()
+        frame1 = tkinter.Frame(self)
         frame1.pack()
-        tinker.Label(frame1, text='Username:').pack(side='left')
-        self.username_detail = tinker.Entry(frame1, width=30, state='readonly', textvariable=self.username_var)
+        tkinter.Label(frame1, text='Username:').pack(side='left')
+        self.username_detail = tkinter.Entry(frame1, width=30, state='readonly', textvariable=self.username_var)
         self.username_detail.pack(side='left')
-        frame2 = tinker.Frame(self)
+        frame2 = tkinter.Frame(self)
         frame2.pack()
-        tinker.Label(frame2, text='Password:').pack(side='left')
-        self.password_detail = tinker.Entry(frame2, width=30, state='readonly', textvariable=self.password_var)
+        tkinter.Label(frame2, text='Password:').pack(side='left')
+        self.password_detail = tkinter.Entry(frame2, width=30, state='readonly', textvariable=self.password_var)
         self.password_detail.pack(side='left')
         
-        tinker.Label(self, text='Search:').pack()
-        self.search_entry = tinker.Entry(self)
+        tkinter.Label(self, text='Search:').pack()
+        self.search_entry = tkinter.Entry(self)
         self.search_entry.pack()
-        self.sort_var = tinker.StringVar()
+        self.sort_var = tkinter.StringVar()
         self.sort_dropdown = ttk.Combobox(self, textvariable=self.sort_var, state='readonly')
         self.sort_dropdown['values'] = ('A-Z', 'Z-A', 'Oldest first', 'Newest first')
         self.sort_dropdown.current(0)
         self.sort_dropdown.pack()
         self.sort_dropdown.bind('<<ComboboxSelected>>', lambda e: self.load_passwords())
-        tinker.Button(self, text='search', command=self.search).pack()
-        tinker.Button(self, text='delete', command=self.delete_pass).pack()
-        tinker.Button(self, text='back', command=self.main_menu).pack()
+        tkinter.Button(self, text='search', command=self.search).pack()
+        tkinter.Button(self, text='delete', command=self.delete_pass).pack()
+        tkinter.Button(self, text='back', command=self.main_menu).pack()
         self.load_passwords()
-        self.msg = tinker.Label(self, text='')
+        self.msg = tkinter.Label(self, text='')
         self.msg.pack()
-        self.timeout = 5 * 60 * 1000
-        self.timer = self.after(self.timeout, self.auto_logout)
-        self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
-        self.bind_all('<Any-Button>', lambda e: self.reset_timer())
-
 
     def load_passwords(self):
+        '''function to load a the stored passwords using the merge sort function at the begining of the code'''
         self.ids = []
-        self.listbox.delete(0, tinker.END)
+        self.listbox.delete(0, tkinter.END)
         with sqlite3.connect(DB_VAULT) as vault:
             cursorV = vault.cursor()
             cursorV.execute('SELECT id, website_name FROM Credentials WHERE vault_id = ?', (self.vault_id,))
@@ -369,9 +356,10 @@ class App_select_password(tinker.Tk):
                 entries = sorted(entries, key=lambda x: x[0], reverse=True)
             for entry in entries:
                 self.ids.append(entry[0])
-                self.listbox.insert(tinker.END, entry[1])
+                self.listbox.insert(tkinter.END, entry[1])
 
     def show_details(self, event):
+        '''function to allow the user to read the username and password after clickig on the selected password'''
         selected = self.listbox.curselection()
         if not selected:
             return
@@ -393,8 +381,9 @@ class App_select_password(tinker.Tk):
             self.password_var.set(password)
 
     def search(self):
+        '''linear search algorithm to look for a spesific password'''
         query = self.search_entry.get().strip().lower()
-        self.listbox.delete(0, tinker.END)
+        self.listbox.delete(0, tkinter.END)
         self.ids = []
         with sqlite3.connect(DB_VAULT) as vault:
             cursorV = vault.cursor()
@@ -405,9 +394,10 @@ class App_select_password(tinker.Tk):
             entries = cursorV.fetchall()
         for entry in entries:
             self.ids.append(entry[0])
-            self.listbox.insert(tinker.END, entry[1])
+            self.listbox.insert(tkinter.END, entry[1])
 
     def delete_pass(self):
+        '''function to remove a password from the list of saved passwords '''
         selected = self.listbox.curselection()
         if not selected:
             self.msg.config(text='Select a site first.')
@@ -423,18 +413,8 @@ class App_select_password(tinker.Tk):
         self.password_var.set('')
         self.msg.config(text=f'Deleted {site}.')
 
-    def reset_timer(self):
-        self.after_cancel(self.timer)
-        self.timer = self.after(self.timeout, self.auto_logout)
-
-    def auto_logout(self):
-        global session, session_key
-        session = False
-        session_key = None
-        self.destroy()
-        app_login().mainloop()
-
     def main_menu(self):
+        '''takes the user back to the main menu page '''
         self.destroy()
         app = App_main_menu(self.vault_id)
         app.mainloop()
