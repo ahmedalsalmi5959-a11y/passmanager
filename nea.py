@@ -299,6 +299,13 @@ class App_add_password(AppPage):
         app = App_main_menu(self.vault_id)
         app.mainloop()
 
+    def auto_logout(self):
+        '''this overides the default auto logout function to clear the fields so no sensitive data is left there'''
+        self.website_entry.delete(0, tkinter.END)
+        self.username_entry.delete(0, tkinter.END)
+        self.password_entry.delete(0, tkinter.END)
+        super().auto_logout()
+
 class App_select_password(AppPage):
     def __init__ (self, vault_id): 
         ''' sets up the window for the select a password page'''
