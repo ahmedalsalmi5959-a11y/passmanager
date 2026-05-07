@@ -119,8 +119,31 @@ def initialise_db():
                            website_name TEXT,
                            username_encrypted TEXT,
                            password_encrypted TEXT,
-                           category_id INTEGER,
+                           category_id INTEGER DEFAULT 5,
                            FOREIGN KEY (category_id) REFERENCES Categories(category_id))''')
+
+'''# --- TREE DATA STRUCTURE ADDITION ---
+class TreeNode:
+    Represents a node in the vault hierarchy (Root -> Category -> Website)
+    def __init__(self, name):
+        self.name = name
+        self.children = []
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+def traverse_vault(node, level=0, output_list=None):
+    Recursive Depth-First Search (DFS) Tree Traversal
+    if output_list is None:
+        output_list = []
+    
+    indent = "    " * level
+    output_list.append(f"{indent}|-- {node.name}")
+    
+    for child in node.children:
+        traverse_vault(child, level + 1, output_list)
+    return output_list'''
+# ------------------------------------
 
 class NavNode:
     '''linked list based navigation'''
@@ -323,9 +346,44 @@ class App_main_menu(AppPage):
         tkinter.Button(self, text='add password', command=self.add_password).pack()
         tkinter.Button(self, text='select password', command=self.select_password).pack()
         tkinter.Button(self, text='log out', command=self.log_out).pack()
-        self.msg = tkinter.Label(self, text=f'You have {self.get_password_count()} saved passwords')
-        self.get_passwords_with_categories()
+        self.msg = tkinter.Label(
+            self,
+            text=f'You have {self.get_password_count()} saved passwords'
+)
         self.msg.pack()
+
+    '''def show_vault_tree(self):
+        Builds the Tree from DB and Traverses it to show a report
+        root = TreeNode("Vault Root")
+        
+        with sqlite3.connect(DB_VAULT) as vault:
+            cursor = vault.cursor()
+            # Get Categories
+            cursor.execute('SELECT category_id, category_name FROM Categories')
+            categories = cursor.fetchall()
+            
+            for cat_id, cat_name in categories:
+                cat_node = TreeNode(cat_name)
+                root.add_child(cat_node)
+                
+                # Get websites in this category
+                cursor.execute('SELECT website_name FROM Credentials WHERE vault_id = ? AND category_id = ?', 
+                             (self.vault_id, cat_id))
+                sites = cursor.fetchall()
+                for site in sites:
+                    cat_node.add_child(TreeNode(site[0]))
+        
+        # Traverse the tree
+        tree_structure = traverse_vault(root)
+        
+        # Display in new window
+        audit_win = tkinter.Toplevel(self)
+        audit_win.title("Vault Tree Audit")
+        audit_win.geometry("300x400")
+        txt = tkinter.Text(audit_win)
+        txt.pack(expand=True, fill='both')
+        txt.insert('1.0', "\n".join(tree_structure))
+        txt.config(state='disabled')'''
 
     def get_password_count(self):
         '''returns the number of saved passwords using aggregate SQL'''
