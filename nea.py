@@ -122,27 +122,7 @@ def initialise_db():
                            category_id INTEGER DEFAULT 5,
                            FOREIGN KEY (category_id) REFERENCES Categories(category_id))''')
 
-'''# --- TREE DATA STRUCTURE ADDITION ---
-class TreeNode:
-    Represents a node in the vault hierarchy (Root -> Category -> Website)
-    def __init__(self, name):
-        self.name = name
-        self.children = []
 
-    def add_child(self, child_node):
-        self.children.append(child_node)
-
-def traverse_vault(node, level=0, output_list=None):
-    Recursive Depth-First Search (DFS) Tree Traversal
-    if output_list is None:
-        output_list = []
-    
-    indent = "    " * level
-    output_list.append(f"{indent}|-- {node.name}")
-    
-    for child in node.children:
-        traverse_vault(child, level + 1, output_list)
-    return output_list'''
 # ------------------------------------
 
 class NavNode:
@@ -161,9 +141,12 @@ class NavHistory:
         '''adds a new page to the navigation history'''
         node = NavNode(page_name)
         if self.current:
+            if self.current.next:
+                self.current.next = None
             node.prev = self.current
             self.current.next = node
         self.current = node
+        
 
     def get_history(self):
         '''returns the full path of visited pages as a list'''
@@ -190,7 +173,7 @@ class AppPage(tkinter.Tk):
     def __init__(self):
         super().__init__()
         self.title('password manager')
-        self.geometry('400x500')
+        self.geometry('600x700')
         self.timeout = 5 * 60 * 1000
         self.timer = self.after(self.timeout, self.auto_logout)
         self.bind_all('<Any-KeyPress>', lambda e: self.reset_timer())
@@ -334,13 +317,14 @@ class app_login(tkinter.Tk):
 
 
 class App_main_menu(AppPage):
-    def __init__(self, vault_id):
+    def __init__(self, vault_id, from_back = False):
         '''sets up the window for the main menu page '''
         self.vault_id = vault_id
         super().__init__()
         tkinter.Label(self, text='Welcome to the offline password manager.').pack()
         tkinter.Label(self, text='MAIN MENU').pack()
-        nav_history.visit('Main Menu')
+        if not from_back:
+            nav_history.visit('Main Menu')
         path = ' > '.join(nav_history.get_history())
         tkinter.Label(self, text=path, fg='grey').pack()
         tkinter.Button(self, text='add password', command=self.add_password).pack()
@@ -352,39 +336,7 @@ class App_main_menu(AppPage):
 )
         self.msg.pack()
 
-    '''def show_vault_tree(self):
-        Builds the Tree from DB and Traverses it to show a report
-        root = TreeNode("Vault Root")
-        
-        with sqlite3.connect(DB_VAULT) as vault:
-            cursor = vault.cursor()
-            # Get Categories
-            cursor.execute('SELECT category_id, category_name FROM Categories')
-            categories = cursor.fetchall()
-            
-            for cat_id, cat_name in categories:
-                cat_node = TreeNode(cat_name)
-                root.add_child(cat_node)
-                
-                # Get websites in this category
-                cursor.execute('SELECT website_name FROM Credentials WHERE vault_id = ? AND category_id = ?', 
-                             (self.vault_id, cat_id))
-                sites = cursor.fetchall()
-                for site in sites:
-                    cat_node.add_child(TreeNode(site[0]))
-        
-        # Traverse the tree
-        tree_structure = traverse_vault(root)
-        
-        # Display in new window
-        audit_win = tkinter.Toplevel(self)
-        audit_win.title("Vault Tree Audit")
-        audit_win.geometry("300x400")
-        txt = tkinter.Text(audit_win)
-        txt.pack(expand=True, fill='both')
-        txt.insert('1.0', "\n".join(tree_structure))
-        txt.config(state='disabled')'''
-
+  
     def get_password_count(self):
         '''returns the number of saved passwords using aggregate SQL'''
         with sqlite3.connect(DB_VAULT) as vault:
@@ -422,12 +374,13 @@ class App_main_menu(AppPage):
 
 
 class App_add_password(AppPage):
-    def __init__(self, vault_id):
+    def __init__(self, vault_id, from_back = False):
         '''sets up the window for the adding a password page '''
         self.vault_id = vault_id
         super().__init__()
         tkinter.Label(self, text='Please add your password details').pack()
-        nav_history.visit('Add Password')
+        if not from_back:
+            nav_history.visit('Add Password')
         path = ' > '.join(nav_history.get_history())
         tkinter.Label(self, text=path, fg='grey').pack()
         tkinter.Label(self, text='website: ').pack()
@@ -490,17 +443,18 @@ class App_add_password(AppPage):
         '''takes you to the main menu page'''
         nav_history.go_back()
         self.destroy()
-        app = App_main_menu(self.vault_id)
+        app = App_main_menu(self.vault_id, from_back=True)
         app.mainloop()
 
 
 class App_select_password(AppPage):
-    def __init__(self, vault_id):
+    def __init__(self, vault_id, from_back = False):
         '''sets up the window for the select a password page'''
         self.vault_id = vault_id
         super().__init__()
         tkinter.Label(self, text='these are your saved passwords').pack()
-        nav_history.visit('Select Password')
+        if not from_back:        
+            nav_history.visit('Select Password')
         path = ' > '.join(nav_history.get_history())
         tkinter.Label(self, text=path, fg='grey').pack()
         self.listbox = tkinter.Listbox(self, width=40, height=10)
@@ -638,7 +592,7 @@ class App_select_password(AppPage):
         '''takes the user back to the main menu page'''
         nav_history.go_back()
         self.destroy()
-        app = App_main_menu(self.vault_id)
+        app = App_main_menu(self.vault_id,from_back=True)
         app.mainloop()
 
 #-----------------------------------code runner--------------------------------------------------
