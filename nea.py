@@ -11,7 +11,7 @@ from datetime import datetime
 from collections import deque
 import tkinter as tkinter
 from tkinter import ttk
-
+aa
 #--------------------varible setup-----------------------------------------------------
 DB_DIR = Path(__file__).parent
 DB_CRED = str(DB_DIR / 'vault_cred.db')
@@ -23,7 +23,7 @@ hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
 #--------------------fuctions-------------------------------------------------------- 
 
 def derive_key(password, salt):
-    '''this function sets up the hashing algorithm using the proper parameters'''
+    '''this function sets up the hashing algorithm using the proper parameters to ensure safe storage of the master password'''
     return hash_secret_raw(
         secret=password.encode(),
         salt=salt,
@@ -36,7 +36,7 @@ def derive_key(password, salt):
 
 
 def encrypt(plaintext, key):
-    '''fuction to encrypt data using aes-256 '''
+    '''fuction to encrypt data using aes-256 to ensure safe storage of saved usernames and passwords'''
     iv = os.urandom(16)
     padder = padding.PKCS7(128).padder()
     padded = padder.update(plaintext.encode()) + padder.finalize()
@@ -47,7 +47,7 @@ def encrypt(plaintext, key):
 
 
 def decrypt(hex_data, key):
-    '''function to decrypt data using aes-256 '''
+    '''function to decrypt data using aes-256 to allow the user to decrypt and view the usernames and passwords'''
     raw = bytes.fromhex(hex_data)
     iv, ciphertext = raw[:16], raw[16:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -57,7 +57,7 @@ def decrypt(hex_data, key):
     return (unpadder.update(padded) + unpadder.finalize()).decode()
 
 def sorting(ls):
-    '''fuction that uses merge sort to sort a list'''
+    '''a recusive merg sort algorthim used to sort usernames'''
     if len(ls) <= 1:
         return ls
     mid = len(ls) // 2
@@ -77,7 +77,7 @@ def sorting(ls):
     return result
 
 def password_strength(password):
-    '''checks the strength of a password and returns the strength'''
+    '''checks the strength of a password and returns the strength to ensure the user has a safe password'''
     score = 0
     if len(password) >= 8:
         score += 1
@@ -126,7 +126,7 @@ def initialise_db():
 # ------------------------------------
 
 class NavNode:
-    '''linked list based navigation'''
+    '''creates the nodes for the linked list based navigation'''
     def __init__(self, page_name):
         self.page_name = page_name
         self.prev = None
@@ -198,7 +198,7 @@ class App_sign_up(tkinter.Tk):
         '''sets up the windows for the sign up page '''
         super().__init__()
         self.title('password manager')
-        self.geometry('400x500')
+        self.geometry('600x700')
         tkinter.Label(self, text='Welcome to the offline password manager.').pack()
         tkinter.Label(self, text='Create your account - this can only be done once').pack()
         tkinter.Label(self, text='Create your username: ').pack()
@@ -241,7 +241,7 @@ class app_login(tkinter.Tk):
         '''sets up the window for the login page '''
         super().__init__()
         self.title('password manager')
-        self.geometry('400x500')
+        self.geometry('600x700')
         tkinter.Label(self, text='Welcome to the offline password manager.').pack()
         tkinter.Label(self, text='Enter your username and password to continue').pack()
         tkinter.Label(self, text='Enter your Username: ').pack()
